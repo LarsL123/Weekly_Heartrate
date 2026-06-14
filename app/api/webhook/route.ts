@@ -92,6 +92,13 @@ export async function POST(request: NextRequest) {
   try {
     const event: StravaWebhookEvent = await request.json();
 
+    console.log(
+      "Receved a Strava request of type ",
+      event.object_type,
+      "with aspect type ",
+      event.aspect_type,
+    );
+
     // Only process new activity creation events for now.
     if (event.object_type !== "activity" || event.aspect_type !== "create") {
       return NextResponse.json({ received: true });
