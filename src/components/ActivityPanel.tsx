@@ -1,125 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Scissors, Save } from "lucide-react";
-import ActivityCard, { Activity, ActivityCropData } from "./ActivityCard";
+import ActivityCard from "./ActivityCard";
 
-const mockActivities: Activity[] = [
-  {
-    id: "1",
-    type: "run",
-    date: "Jun 12",
-    duration: "45:23",
-    totalDuration: 2723,
-  },
-  {
-    id: "2",
-    type: "ride",
-    date: "Jun 11",
-    duration: "1:12:45",
-    totalDuration: 4365,
-  },
-  {
-    id: "3",
-    type: "run",
-    date: "Jun 10",
-    duration: "32:15",
-    totalDuration: 1935,
-  },
-  {
-    id: "4",
-    type: "ride",
-    date: "Jun 9",
-    duration: "58:30",
-    totalDuration: 3510,
-  },
-  {
-    id: "5",
-    type: "run",
-    date: "Jun 8",
-    duration: "41:10",
-    totalDuration: 2470,
-  },
-  {
-    id: "6",
-    type: "ride",
-    date: "Jun 7",
-    duration: "1:25:00",
-    totalDuration: 5100,
-  },
-  {
-    id: "7",
-    type: "run",
-    date: "Jun 6",
-    duration: "38:45",
-    totalDuration: 2325,
-  },
-];
+import { ActivityHrData, CropState } from "@/types/types";
 
-export default function ActivityPanel() {
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(
-    null,
-  );
-  const [isSaving, setIsSaving] = useState(false);
+interface ActivityPanelProps {
+  data: readonly ActivityHrData[];
+  activeActivities: string[];
+  onToggleActivity: (activityId: string) => void;
+  onSaveAllCrops: (cropDataMap: CropState) => void;
+}
 
-  // Initialize crop data for all activities
-  const [cropDataMap, setCropDataMap] = useState<
-    Record<string, ActivityCropData>
-  >(() => {
-    const initialData: Record<string, ActivityCropData> = {};
-    mockActivities.forEach((activity) => {
-      initialData[activity.id] = {
-        id: activity.id,
-        cropStart: 0,
-        cropEnd: 100,
-        included: true,
+export default function ActivityPanel({
+  data,
+  activeActivities,
+  onToggleActivity,
+  onSaveAllCrops: onSaveCrop,
+}: ActivityPanelProps) {
+  const [cropData, setCropDataMap] = useState<CropState>({});
+  const [isSaving, setIsSaving] = useState(false); //TODO: Elvaluate the need for this. Right now does nothing
+
+  useEffect(() => {
+    const initialData: CropState = {};
+    data.forEach((activity) => {
+      initialData[activity.activity_id] = {
+        cropStart: activity.crop_start,
+        cropEnd: activity.crop_end,
       };
     });
-    return initialData;
-  });
+    setCropDataMap(initialData);
+  }, [data]);
 
-  const handleCropChange = (data: ActivityCropData) => {
+  const handleCropChange = (
+    activityId: string,
+    cropStart: number,
+    cropEnd: number,
+  ) => {
     setCropDataMap((prev) => ({
       ...prev,
-      [data.id]: data,
+      [activityId]: { cropStart, cropEnd },
     }));
   };
 
-  const handleSaveAll = () => {
-    console.log("Saving all crops:", cropDataMap);
+  const handleSaveCrops = () => {
+    console.log("Saving all crops:", cropData);
     setIsSaving(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1500);
+    onSaveCrop(cropData);
+    setIsSaving(false);
   };
 
-  const includedCount = Object.values(cropDataMap).filter(
-    (data) => data.included,
-  ).length;
+  const includedCount = activeActivities.length;
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Panel Header with Save All Button */}
       <div className="bg-white border-b border-gray-200">
         <div className="flex items-center gap-2 px-4 py-4">
           <Scissors className="w-5 h-5 text-gray-700" />
           <h2 className="text-lg font-semibold text-gray-900">
             Recent Activities
           </h2>
-          <span className="ml-auto text-sm text-gray-500">
-            {includedCount}/{mockActivities.length} included
-          </span>
-        </div>
-
-        {/* Save All Crops Button */}
-        <div className="px-4 pb-4">
           <button
-            onClick={handleSaveAll}
+            onClick={handleSaveCrops}
             disabled={isSaving}
             className={`
-              w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
+              ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
               transition-colors
               ${
                 isSaving
@@ -130,23 +76,40 @@ export default function ActivityPanel() {
             `}
           >
             <Save className="w-4 h-4" />
-            {isSaving ? "Saved All Crops!" : "Save All Crops"}
+            {isSaving ? "Saved!" : "Save Crops"}
           </button>
+          <span className="ml-auto text-sm text-gray-500">
+            {includedCount}/{data.length} active
+          </span>
         </div>
       </div>
 
-      {/* Scrollable Activities List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {mockActivities.map((activity) => (
-          <ActivityCard
-            key={activity.id}
-            activity={activity}
-            isSelected={selectedActivityId === activity.id}
-            onSelect={() => setSelectedActivityId(activity.id)}
-            cropData={cropDataMap[activity.id]}
-            onCropChange={handleCropChange}
-          />
-        ))}
+        {data.map((activity) => {
+          // const cropState = cropData[activity.activity_id] || {
+          //   cropStart: 0,
+          //   cropEnd: 100,
+          // };
+
+          console.log(cropData);
+          if (!cropData[activity.activity_id]) {
+            return;
+          }
+
+          return (
+            <ActivityCard
+              key={activity.activity_id}
+              activity={activity}
+              isActive={activeActivities.includes(activity.activity_id)}
+              onToggleActive={() => onToggleActivity(activity.activity_id)}
+              cropStart={cropData[activity.activity_id].cropStart}
+              cropEnd={cropData[activity.activity_id].cropEnd || 100}
+              onCropChange={(cropStart, cropEnd) =>
+                handleCropChange(activity.activity_id, cropStart, cropEnd)
+              }
+            />
+          );
+        })}
       </div>
     </div>
   );

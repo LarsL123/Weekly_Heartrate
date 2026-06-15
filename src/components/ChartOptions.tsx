@@ -4,19 +4,19 @@ import { Settings } from "lucide-react";
 
 interface ChartOptionsProps {
   showPreviousWeek: boolean;
-  smoothCurves: boolean;
+  smoothingWindow: number;
   zoneOverlays: boolean;
   onToggleShowPreviousWeek: () => void;
-  onToggleSmoothCurves: () => void;
+  onChangeSmoothingWindow: (value: number) => void;
   onToggleZoneOverlays: () => void;
 }
 
 export default function ChartOptions({
   showPreviousWeek,
-  smoothCurves,
+  smoothingWindow,
   zoneOverlays,
   onToggleShowPreviousWeek,
-  onToggleSmoothCurves,
+  onChangeSmoothingWindow,
   onToggleZoneOverlays,
 }: ChartOptionsProps) {
   return (
@@ -32,10 +32,11 @@ export default function ChartOptions({
           checked={showPreviousWeek}
           onChange={onToggleShowPreviousWeek}
         />
-        <ToggleOption
-          label="Smooth Curves"
-          checked={smoothCurves}
-          onChange={onToggleSmoothCurves}
+        <CounterOption
+          label="Smoothing"
+          value={smoothingWindow}
+          onChange={onChangeSmoothingWindow}
+          minValue={1}
         />
         <ToggleOption
           label="Zone Overlays"
@@ -77,5 +78,60 @@ function ToggleOption({ label, checked, onChange }: ToggleOptionProps) {
         />
       </button>
     </label>
+  );
+}
+
+interface CounterOptionProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  minValue: number;
+}
+
+function CounterOption({ label, value, onChange, minValue }: CounterOptionProps) {
+  const handleDecrement = () => {
+    if (value > minValue) {
+      onChange(value - 1);
+    }
+  };
+
+  const handleIncrement = () => {
+    onChange(value + 1);
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-gray-700">
+        {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleDecrement}
+          disabled={value <= minValue}
+          className={`
+            w-6 h-6 rounded flex items-center justify-center text-sm font-medium
+            transition-colors
+            ${value <= minValue
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }
+          `}
+        >
+          −
+        </button>
+        <span className="text-sm font-medium text-gray-900 w-8 text-center">
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={handleIncrement}
+          className="w-6 h-6 rounded bg-gray-200 text-gray-700 hover:bg-gray-300
+                     flex items-center justify-center text-sm font-medium transition-colors"
+        >
+          +
+        </button>
+      </div>
+    </div>
   );
 }

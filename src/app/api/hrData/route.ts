@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initSupabaseAdmin } from "@/services/database";
 
-import { CropUpdate } from "@/types/types";
+import { CropState } from "@/types/types";
 
 /**
  * GET /api/hrData
@@ -80,13 +80,13 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/hrData
  * Update crop_start and crop_end values for multiple activities
- * Body: Array of { activity_id, crop_start, crop_end }
+ * Body: A CropState object is JSON format.
  * Returns: 200 OK on success
  */
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
-    const updates: CropUpdate[] = await request.json();
+    const updates: CropState = await request.json();
 
     const error = getValidationError(updates);
     if (error != null) return NextResponse.json({ error }, { status: 400 });
@@ -95,26 +95,26 @@ export async function POST(request: NextRequest) {
 
     // N+1 round trip problem. I am not good enough in databse stuff to find good sulution here.
     const results = [];
-    for (const update of updates) {
+    for (const [activityId, update] of Object.entries(updates)) {
       const { error: updateError } = await supabase
         .from("activity_heartrate_data")
         .update({
-          crop_start: update.crop_start,
-          crop_end: update.crop_end,
+          crop_start: update.cropStart,
+          crop_end: update.cropEnd,
         })
-        .eq("activity_id", update.activity_id);
+        .eq("activity_id", activityId);
 
       if (updateError) {
         return NextResponse.json(
           {
-            error: `Failed to update activity ${update.activity_id}`,
+            error: `Failed to update activity ${activityId}`,
             details: updateError.message,
           },
           { status: 500 },
         );
       }
 
-      results.push({ activity_id: update.activity_id, success: true });
+      results.push({ activity_id: activityId, success: true });
     }
 
     return NextResponse.json(
@@ -137,24 +137,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getValidationError(updates: CropUpdate[]): String | null {
-  if (!Array.isArray(updates)) {
-    return "Request body must be an array of updates";
+function getValidationError(updates: unknown): string | null {
+  if (
+    typeof updates !== "object" ||
+    updates === null ||
+    Array.isArray(updates)
+  ) {
+    return "Request body must be an object";
   }
 
-  if (updates.length === 0) {
-    return "Updates array cannot be empty";
+  if (Object.keys(updates).length === 0) {
+    return "Updates object cannot be empty";
   }
 
-  for (const update of updates) {
-    if (!update.activity_id || typeof update.activity_id !== "string") {
-      return "Each update must have a valid activity_id (string)";
+  for (const [activityId, update] of Object.entries(updates)) {
+    if (!activityId) {
+      return "Activity IDs must be non-empty strings";
     }
-    if (typeof update.crop_start !== "number") {
-      return "Each update must have a valid crop_start (number)";
+
+    if (typeof update.cropStart !== "number") {
+      return `Activity ${activityId} must have a valid cropStart (number)`;
     }
-    if (update.crop_end !== null && typeof update.crop_end !== "number") {
-      return "crop_end must be a number or null";
+
+    if (update.cropEnd !== null && typeof update.cropEnd !== "number") {
+      return `Activity ${activityId} cropEnd must be a number or null`;
     }
   }
 
