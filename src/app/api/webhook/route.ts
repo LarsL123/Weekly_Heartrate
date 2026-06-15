@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { initSupabaseAdmin } from "@/services/database";
+import { getValidAccessToken } from "@/services/auth";
 
 // Types for Strava webhook events
 interface StravaWebhookEvent {
@@ -10,23 +11,6 @@ interface StravaWebhookEvent {
   owner_id: number;
   subscription_id: number;
   updates?: Record<string, unknown>;
-}
-
-// Type for Strava token refresh response
-interface StravaTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-  expires_in: number;
-  token_type: string;
-}
-
-// Type for stored auth data
-interface StravaAuth {
-  id: number;
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
 }
 
 // Type for Strava activity streams
@@ -45,7 +29,7 @@ interface StravaStreamData {
   };
 }
 
-// Type for Strava detailed activity
+// Strava API return type.
 interface StravaActivity {
   id: number;
   start_date: string;
@@ -108,37 +92,8 @@ export async function POST(request: NextRequest) {
 
     const activityId = event.object_id;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase configuration");
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Fetch authentication data from row 1
-    const { data: authData, error: authError } = await supabase
-      .from("strava_auth")
-      .select("*")
-      .eq("id", 1)
-      .single();
-
-    if (authError || !authData) {
-      throw new Error(`Failed to fetch auth data: ${authError?.message}`);
-    }
-
-    const auth = authData as StravaAuth;
-
-    // Check if access token is expired and refresh if needed
-    const expiresAt = new Date(auth.expires_at).getTime();
-    const currentTime = Date.now();
-    let accessToken = auth.access_token;
-
-    if (currentTime >= expiresAt) {
-      // Token is expired, refresh it
-      accessToken = await refreshAccessToken(auth.refresh_token, supabase);
-    }
+    const supabase = initSupabaseAdmin();
+    const accessToken = getValidAccessToken(supabase);
 
     // Fetch activity details to get start_date
     const activityResponse = await fetch(
@@ -227,55 +182,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-/**
- * Refresh the Strava access token and update in database
- */
-async function refreshAccessToken(
-  refreshToken: string,
-  supabase: SupabaseClient<any, any, any>,
-): Promise<string> {
-  const clientId = process.env.STRAVA_CLIENT_ID;
-  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error("Missing Strava client credentials");
-  }
-
-  const response = await fetch("https://www.strava.com/oauth/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Token refresh failed: ${errorText}`);
-  }
-
-  const tokenData: StravaTokenResponse = await response.json();
-
-  // Update the auth record with new tokens
-  const { error: updateError } = await supabase
-    .from("strava_auth")
-    .update({
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      expires_at: new Date(tokenData.expires_at * 1000).toISOString(),
-    })
-    .eq("id", 1);
-
-  if (updateError) {
-    throw new Error(`Failed to update tokens: ${updateError.message}`);
-  }
-
-  return tokenData.access_token;
 }
