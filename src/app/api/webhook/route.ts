@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         distance: activity.distance,
         streams: rawStreams,
         crop_start: 0,
-        crop_end: null,
+        crop_end: 100,
       });
 
     if (insertError) {
