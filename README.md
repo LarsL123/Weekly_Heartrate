@@ -1,4 +1,9 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Generating Types From Supabase
+
+Whenever the databse has chenged you can generate types from trypscrip using the command:
+npx supabase gen types typescript --project-id "prnecrkdcpmiuaubvvvk" > src/types/supabase.ts
+
+This will let Typescript catch errors and we dont have to define databse types :)
 
 ## Getting Started
 
