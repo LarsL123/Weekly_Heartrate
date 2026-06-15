@@ -42,6 +42,29 @@ interface StravaActivity {
 }
 
 /**
+ * Updates an existing activity's name and sport type
+ */
+async function updateExistingActivity(
+  supabase: ReturnType<typeof initSupabaseAdmin>,
+  activityId: number,
+  activity: StravaActivity,
+) {
+  const { error: updateError } = await supabase
+    .from("activity_heartrate_data")
+    .update({
+      name: activity.name,
+      sport_type: activity.sport_type,
+    })
+    .eq("activity_id", activityId.toString());
+
+  if (updateError) {
+    throw new Error(`Failed to update activity: ${updateError.message}`);
+  }
+
+  console.log(`Updated activity ${activityId} with new name and sport type`);
+}
+
+/**
  * GET handler for Strava webhook validation
  * Strava sends a validation request when setting up the webhook subscription
  */
@@ -84,18 +107,15 @@ export async function POST(request: NextRequest) {
     );
 
     // Only process new activity creation events for now.
-    if (event.object_type !== "activity" || event.aspect_type !== "create") {
+    if (event.object_type !== "activity" || event.aspect_type === "delete") {
       return NextResponse.json({ received: true });
     }
-
-    //TODO: Could add update logic here as well if needed.
 
     const activityId = event.object_id;
 
     const supabase = initSupabaseAdmin();
-    const accessToken = getValidAccessToken(supabase);
+    const accessToken = await getValidAccessToken(supabase);
 
-    // Fetch activity details to get start_date
     const activityResponse = await fetch(
       `https://www.strava.com/api/v3/activities/${activityId}`,
       {
@@ -112,6 +132,15 @@ export async function POST(request: NextRequest) {
     }
 
     const activity: StravaActivity = await activityResponse.json();
+
+    if (event.aspect_type === "update") {
+      await updateExistingActivity(supabase, activityId, activity);
+      return NextResponse.json({
+        received: true,
+        updated: true,
+        activity_id: activityId,
+      });
+    }
 
     // Fetch raw heartrate and time streams from Strava
     const streamsResponse = await fetch(
