@@ -3,6 +3,7 @@
 import { Bike, Activity as ActivityIcon, Calendar, Clock } from "lucide-react";
 import { ActivityHrData } from "@/types/types";
 import CropControl from "./CropControl";
+import Image from "next/image";
 
 interface ActivityCardProps {
   readonly activity: ActivityHrData;
@@ -75,6 +76,22 @@ export default function ActivityCard({
         </div>
 
         <div className="flex items-center gap-3">
+          <a
+            href={`https://www.strava.com/activities/${activity.activity_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-70 transition-opacity"
+            title="View on Strava"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src="/strava.svg"
+              alt="Strava"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
+          </a>
           <button
             type="button"
             role="switch"

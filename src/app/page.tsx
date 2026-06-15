@@ -12,6 +12,11 @@ export default function Home() {
   const [showPreviousWeek, setShowPreviousWeek] = useState(true);
   const [smoothingWindow, setSmoothingWindow] = useState(3);
   const [zoneOverlays, setZoneOverlays] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
+
+  console.log(selectedDate);
 
   const [rawHrData, setRawHrData] = useState<ActivityHrData[]>([]);
   const [activeActivities, setActiveActivities] = useState<string[]>([]);
@@ -26,7 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch(`/api/hrData?week=${"2026-06-14"}`);
+      const response = await fetch(`/api/hrData?week=${selectedDate}`);
       if (!response.ok) {
         throw new Error(
           `Was not abel to get data from the server: ${response.status}`,
@@ -39,9 +44,9 @@ export default function Home() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedDate]);
 
-  const onSaveCrops = (cropDataMap: CropState) => {
+  const onSaveCrops = (cropDataMap: CropState, onSuccess: () => void) => {
     const storeCrops = async () => {
       const result = await fetch("/api/hrData", {
         method: "POST",
@@ -60,6 +65,7 @@ export default function Home() {
           return activity;
         });
       });
+      onSuccess();
     };
     storeCrops();
   };
@@ -82,11 +88,13 @@ export default function Home() {
               showPreviousWeek={showPreviousWeek}
               smoothingWindow={smoothingWindow}
               zoneOverlays={zoneOverlays}
+              selectedDate={selectedDate}
               onToggleShowPreviousWeek={() =>
                 setShowPreviousWeek(!showPreviousWeek)
               }
               onChangeSmoothingWindow={setSmoothingWindow}
               onToggleZoneOverlays={() => setZoneOverlays(!zoneOverlays)}
+              onChangeDate={setSelectedDate}
             />
           </div>
         </div>

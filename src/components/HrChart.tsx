@@ -19,10 +19,9 @@ interface HrChartProps {
   smoothingWindow: number;
 }
 
-// Apply moving average smoothing to data
 function applyMovingAverage(
   data: Array<{ heartrate: number; time: number }>,
-  windowSize: number
+  windowSize: number,
 ) {
   if (windowSize <= 1 || data.length === 0) {
     return data;
@@ -49,7 +48,6 @@ function applyMovingAverage(
   return smoothedData;
 }
 
-// Process workout data to calculate time spent at each heart rate
 function processHeartRateData(
   workouts: ActivityHrData[],
   activeActivities: string[],
@@ -72,12 +70,12 @@ function processHeartRateData(
       return;
     }
 
-    // Iterate through each point and calculate time spent
-    for (let i = 0; i < heartrate.length - 1; i++) {
-      const hr = Math.round(heartrate[i]); // Round to nearest BPM
-      const duration = time[i + 1] - time[i]; // Time between this point and next
+    const startIndex = Math.floor(workout.crop_start * 0.01 * heartrate.length);
+    const endIndex = Math.ceil(workout.crop_end * 0.01 * heartrate.length);
 
-      hrTimeMap.set(hr, (hrTimeMap.get(hr) || 0) + duration);
+    for (let i = startIndex; i < endIndex - 1; i++) {
+      const hr = Math.round(heartrate[i]);
+      hrTimeMap.set(hr, (hrTimeMap.get(hr) || 0) + 1);
     }
   });
 
@@ -89,7 +87,6 @@ function processHeartRateData(
     }))
     .sort((a, b) => a.heartrate - b.heartrate);
 
-  // Apply smoothing if window size > 1
   return applyMovingAverage(chartData, smoothingWindow);
 }
 
@@ -99,7 +96,11 @@ export default function HrChart({
   activeActivities,
   smoothingWindow,
 }: HrChartProps) {
-  const chartData = processHeartRateData(workouts, activeActivities, smoothingWindow);
+  const chartData = processHeartRateData(
+    workouts,
+    activeActivities,
+    smoothingWindow,
+  );
 
   return (
     <div className="h-full bg-white rounded-lg border border-gray-200 p-6">
@@ -148,8 +149,10 @@ export default function HrChart({
                 labelFormatter={(label) => `${label} BPM`}
                 contentStyle={{
                   backgroundColor: "#fff",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid #295fcc",
                 }}
+                labelStyle={{ color: "#9b9b9b" }}
+                itemStyle={{ color: "#000000" }}
               />
               <Line
                 type="monotone"

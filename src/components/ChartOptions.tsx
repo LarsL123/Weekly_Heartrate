@@ -1,23 +1,28 @@
 "use client";
 
 import { Settings } from "lucide-react";
+import WeekPicker from "./WeekPicker";
 
 interface ChartOptionsProps {
   showPreviousWeek: boolean;
   smoothingWindow: number;
   zoneOverlays: boolean;
+  selectedDate: string;
   onToggleShowPreviousWeek: () => void;
   onChangeSmoothingWindow: (value: number) => void;
   onToggleZoneOverlays: () => void;
+  onChangeDate: (date: string) => void;
 }
 
 export default function ChartOptions({
   showPreviousWeek,
   smoothingWindow,
   zoneOverlays,
+  selectedDate,
   onToggleShowPreviousWeek,
   onChangeSmoothingWindow,
   onToggleZoneOverlays,
+  onChangeDate,
 }: ChartOptionsProps) {
   return (
     <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
@@ -27,6 +32,7 @@ export default function ChartOptions({
       </div>
 
       <div className="space-y-3">
+        <WeekPicker label="Week" value={selectedDate} onChange={onChangeDate} />
         <ToggleOption
           label="Show Previous"
           checked={showPreviousWeek}
@@ -88,7 +94,12 @@ interface CounterOptionProps {
   minValue: number;
 }
 
-function CounterOption({ label, value, onChange, minValue }: CounterOptionProps) {
+function CounterOption({
+  label,
+  value,
+  onChange,
+  minValue,
+}: CounterOptionProps) {
   const handleDecrement = () => {
     if (value > minValue) {
       onChange(value - 1);
@@ -101,9 +112,7 @@ function CounterOption({ label, value, onChange, minValue }: CounterOptionProps)
 
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm text-gray-700">
-        {label}
-      </span>
+      <span className="text-sm text-gray-700">{label}</span>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -112,9 +121,10 @@ function CounterOption({ label, value, onChange, minValue }: CounterOptionProps)
           className={`
             w-6 h-6 rounded flex items-center justify-center text-sm font-medium
             transition-colors
-            ${value <= minValue
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            ${
+              value <= minValue
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }
           `}
         >

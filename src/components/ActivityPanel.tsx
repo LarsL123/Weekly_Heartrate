@@ -10,7 +10,7 @@ interface ActivityPanelProps {
   data: readonly ActivityHrData[];
   activeActivities: string[];
   onToggleActivity: (activityId: string) => void;
-  onSaveAllCrops: (cropDataMap: CropState) => void;
+  onSaveAllCrops: (cropDataMap: CropState, onSuccess: () => void) => void;
 }
 
 export default function ActivityPanel({
@@ -47,8 +47,9 @@ export default function ActivityPanel({
   const handleSaveCrops = () => {
     console.log("Saving all crops:", cropData);
     setIsSaving(true);
-    onSaveCrop(cropData);
-    setIsSaving(false);
+    onSaveCrop(cropData, () => {
+      setIsSaving(false);
+    });
   };
 
   const includedCount = activeActivities.length;
@@ -86,12 +87,6 @@ export default function ActivityPanel({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {data.map((activity) => {
-          // const cropState = cropData[activity.activity_id] || {
-          //   cropStart: 0,
-          //   cropEnd: 100,
-          // };
-
-          console.log(cropData);
           if (!cropData[activity.activity_id]) {
             return;
           }

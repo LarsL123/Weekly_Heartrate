@@ -1,7 +1,7 @@
 ## Generating Types From Supabase
 
 Whenever the databse has chenged you can generate types from trypscrip using the command:
-npx supabase gen types typescript --project-id "-your-project-id" > src/types/supabase.ts
+npx supabase gen types typescript --project-id "prnecrkdcpmiuaubvvvk" > src/types/supabase.ts
 
 This will let Typescript catch errors and we dont have to define databse types :)
 
