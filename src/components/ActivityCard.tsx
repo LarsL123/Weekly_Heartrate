@@ -32,15 +32,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// Helper function to determine activity type icon
-function getActivityType(sportType: string): "run" | "ride" {
-  const lowerType = sportType.toLowerCase();
-  if (lowerType.includes("run") || lowerType.includes("jog")) {
-    return "run";
-  }
-  return "ride";
-}
-
 export default function ActivityCard({
   activity,
   isActive,
@@ -49,8 +40,8 @@ export default function ActivityCard({
   cropEnd,
   onCropChange,
 }: ActivityCardProps) {
-  const activityType = getActivityType(activity.sport_type);
-  const Icon = activityType === "run" ? ActivityIcon : Bike;
+  const activityType = activity.sport_type.toLowerCase();
+  const Icon = activityType === "ride" ? Bike : ActivityIcon;
 
   const toggleActive = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,10 +52,9 @@ export default function ActivityCard({
     <div
       className={`
         bg-white border rounded-lg p-4 cursor-pointer transition-all border-gray-200 hover:border-gray-300
-        ${!isActive ? "opacity-60" : ""}
+        ${!isActive && "opacity-60"}
       `}
     >
-      {/* Activity Header with Toggle */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Icon
@@ -113,12 +103,10 @@ export default function ActivityCard({
         </div>
       </div>
 
-      {/* Activity Name */}
       <div className="mb-2 text-sm font-medium text-gray-900 truncate">
         {activity.name}
       </div>
 
-      {/* Activity Metadata */}
       <div className="flex items-center gap-3 mb-3 text-xs text-gray-500">
         <div className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5" />
@@ -130,7 +118,6 @@ export default function ActivityCard({
         </div>
       </div>
 
-      {/* Crop Control Area */}
       <CropControl
         cropStart={cropStart}
         cropEnd={cropEnd}

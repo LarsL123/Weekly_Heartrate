@@ -14,7 +14,8 @@ import {
 
 interface HrChartProps {
   showPreviousWeek: boolean;
-  workouts: ActivityHrData[];
+  primaryWorkouts: ActivityHrData[];
+  secondaryWorkouts: ActivityHrData[];
   activeActivities: string[];
   smoothingWindow: number;
 }
@@ -50,16 +51,11 @@ function applyMovingAverage(
 
 function processHeartRateData(
   workouts: ActivityHrData[],
-  activeActivities: string[],
   smoothingWindow: number,
 ) {
   const hrTimeMap = new Map<number, number>(); // heart rate -> total time in seconds
 
   workouts.forEach((workout) => {
-    if (!activeActivities.includes(workout.activity_id)) {
-      return;
-    }
-
     const streams = workout.streams as {
       time?: number[];
       heartrate?: number[];
@@ -92,13 +88,20 @@ function processHeartRateData(
 
 export default function HrChart({
   showPreviousWeek,
-  workouts,
+  primaryWorkouts,
+  secondaryWorkouts,
   activeActivities,
   smoothingWindow,
 }: HrChartProps) {
   const chartData = processHeartRateData(
-    workouts,
-    activeActivities,
+    primaryWorkouts.filter((workout) => {
+      return activeActivities.includes(workout.activity_id);
+    }),
+    smoothingWindow,
+  );
+
+  const previousWeekData = processHeartRateData(
+    secondaryWorkouts,
     smoothingWindow,
   );
 
@@ -161,11 +164,22 @@ export default function HrChart({
                 strokeWidth={2}
                 dot={false}
               />
+              {showPreviousWeek && (
+                <Line
+                  type="monotone"
+                  dataKey="time"
+                  data={previousWeekData}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
-            No heart rate data available
+            No heart rate data for primary week available. Choose another week
+            opr contact admin if this continues.
           </div>
         )}
       </div>

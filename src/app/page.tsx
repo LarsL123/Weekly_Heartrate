@@ -1,50 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import DashboardHeader from "../components/DashboardHeader";
 import HrChart from "../components/HrChart";
 import ChartOptions from "../components/ChartOptions";
 import ActivityPanel from "../components/ActivityPanel";
+import { getMonday, prevMonday } from "@/services/dateHelpers";
 
 import { ActivityHrData, CropState } from "@/types/types";
 
 export default function Home() {
-  const [showPreviousWeek, setShowPreviousWeek] = useState(true);
+  const [showPreviousWeek, setShowPreviousWeek] = useState(false);
   const [smoothingWindow, setSmoothingWindow] = useState(3);
   const [zoneOverlays, setZoneOverlays] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0],
+  const [selectedPrimaryDate, setSelectedPrimaryDate] =
+    useState<string>(getMonday());
+  const [selectedSecondaryDate, setSelectedSecondaryDate] =
+    useState<string>(prevMonday());
+  const [primaryWorkouts, setPrimaryWorkouts] = useState<ActivityHrData[]>([]);
+  const [secondaryWorkouts, setSecondaryWorkouts] = useState<ActivityHrData[]>(
+    [],
   );
-
-  console.log(selectedDate);
-
-  const [rawHrData, setRawHrData] = useState<ActivityHrData[]>([]);
   const [activeActivities, setActiveActivities] = useState<string[]>([]);
 
-  // Get current date formatted
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const cache = useRef<Map<string, ActivityHrData[]>>(new Map());
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch(`/api/hrData?week=${selectedDate}`);
+      const response = await fetch(`/api/hrData?week=${selectedPrimaryDate}`);
+      if (!response.ok) {
+        throw new Error(
+          `Was not abel to get data from the server: ${response.status}`,
+        );
+      }
+      console.log("Fetched");
+      const data = await response.json();
+      cache.current.set(selectedPrimaryDate, data);
+      setPrimaryWorkouts(data);
+      setActiveActivities(data.map((e: ActivityHrData) => e.activity_id));
+    };
+
+    fetchData();
+  }, [selectedPrimaryDate]);
+
+  useEffect(() => {
+    if (!showPreviousWeek) return;
+
+    if (cache.current.has(selectedSecondaryDate))
+      return setSecondaryWorkouts(cache.current.get(selectedSecondaryDate)!);
+
+    const loadSecondaryWorkouts = async () => {
+      const response = await fetch(`/api/hrData?week=${selectedSecondaryDate}`);
       if (!response.ok) {
         throw new Error(
           `Was not abel to get data from the server: ${response.status}`,
         );
       }
 
+      console.log("Fetched");
       const data = await response.json();
-      setRawHrData(data);
-      setActiveActivities(data.map((e: ActivityHrData) => e.activity_id));
+      cache.current.set(selectedSecondaryDate, data);
+      setSecondaryWorkouts(data);
     };
 
-    fetchData();
-  }, [selectedDate]);
+    loadSecondaryWorkouts();
+  }, [selectedSecondaryDate, showPreviousWeek]);
 
   const onSaveCrops = (cropDataMap: CropState, onSuccess: () => void) => {
     const storeCrops = async () => {
@@ -58,7 +78,7 @@ export default function Home() {
 
       console.log(await result.json());
 
-      setRawHrData((prev) => {
+      setPrimaryWorkouts((prev) => {
         return prev.map((activity) => {
           activity.crop_start = cropDataMap[activity.activity_id].cropStart;
           activity.crop_end = cropDataMap[activity.activity_id].cropEnd;
@@ -67,18 +87,25 @@ export default function Home() {
       });
       onSuccess();
     };
+
     storeCrops();
   };
+
+  console.log(cache);
 
   return (
     <div className="h-screen overflow-hidden flex">
       <div className="w-[70%] flex flex-col bg-white">
-        <DashboardHeader title="Weekly Performance" currentDate={currentDate} />
+        <DashboardHeader
+          title="Weekly Performance"
+          currentDate={selectedPrimaryDate}
+        />
         <div className="flex-1 p-6 flex gap-6 overflow-hidden">
           <div className="w-[80%]">
             <HrChart
               showPreviousWeek={showPreviousWeek}
-              workouts={rawHrData}
+              primaryWorkouts={primaryWorkouts}
+              secondaryWorkouts={secondaryWorkouts}
               activeActivities={activeActivities}
               smoothingWindow={smoothingWindow}
             />
@@ -88,13 +115,15 @@ export default function Home() {
               showPreviousWeek={showPreviousWeek}
               smoothingWindow={smoothingWindow}
               zoneOverlays={zoneOverlays}
-              selectedDate={selectedDate}
+              selectedPrimaryDate={selectedPrimaryDate}
+              selectedSecondaryDate={selectedSecondaryDate}
               onToggleShowPreviousWeek={() =>
                 setShowPreviousWeek(!showPreviousWeek)
               }
               onChangeSmoothingWindow={setSmoothingWindow}
               onToggleZoneOverlays={() => setZoneOverlays(!zoneOverlays)}
-              onChangeDate={setSelectedDate}
+              onChangePrimaryDate={setSelectedPrimaryDate}
+              onChangeSecondaryDate={setSelectedSecondaryDate}
             />
           </div>
         </div>
@@ -102,7 +131,7 @@ export default function Home() {
 
       <div className="w-[30%] border-l border-gray-200">
         <ActivityPanel
-          data={rawHrData}
+          data={primaryWorkouts}
           activeActivities={activeActivities}
           onToggleActivity={(activityId: string) => {
             setActiveActivities((prev) =>

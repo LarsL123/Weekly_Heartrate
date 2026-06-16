@@ -20,7 +20,7 @@ export default function ActivityPanel({
   onSaveAllCrops: onSaveCrop,
 }: ActivityPanelProps) {
   const [cropData, setCropDataMap] = useState<CropState>({});
-  const [isSaving, setIsSaving] = useState(false); //TODO: Elvaluate the need for this. Right now does nothing
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const initialData: CropState = {};

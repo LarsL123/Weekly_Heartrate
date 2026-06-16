@@ -7,22 +7,26 @@ interface ChartOptionsProps {
   showPreviousWeek: boolean;
   smoothingWindow: number;
   zoneOverlays: boolean;
-  selectedDate: string;
+  selectedPrimaryDate: string;
+  selectedSecondaryDate: string;
   onToggleShowPreviousWeek: () => void;
   onChangeSmoothingWindow: (value: number) => void;
   onToggleZoneOverlays: () => void;
-  onChangeDate: (date: string) => void;
+  onChangePrimaryDate: (date: string) => void;
+  onChangeSecondaryDate: (date: string) => void;
 }
 
 export default function ChartOptions({
   showPreviousWeek,
   smoothingWindow,
   zoneOverlays,
-  selectedDate,
+  selectedPrimaryDate,
+  selectedSecondaryDate,
   onToggleShowPreviousWeek,
   onChangeSmoothingWindow,
   onToggleZoneOverlays,
-  onChangeDate,
+  onChangePrimaryDate,
+  onChangeSecondaryDate,
 }: ChartOptionsProps) {
   return (
     <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
@@ -32,23 +36,35 @@ export default function ChartOptions({
       </div>
 
       <div className="space-y-3">
-        <WeekPicker label="Week" value={selectedDate} onChange={onChangeDate} />
+        <WeekPicker
+          label="Primary Week"
+          value={selectedPrimaryDate}
+          onChange={onChangePrimaryDate}
+        />
+        <div className="border-b border-gray-200" />
         <ToggleOption
           label="Show Previous"
           checked={showPreviousWeek}
           onChange={onToggleShowPreviousWeek}
         />
+        <WeekPicker
+          label=""
+          disabled={!showPreviousWeek}
+          value={selectedSecondaryDate}
+          onChange={onChangeSecondaryDate}
+        />
+        <div className="border-b border-gray-200" />
         <CounterOption
           label="Smoothing"
           value={smoothingWindow}
           onChange={onChangeSmoothingWindow}
           minValue={1}
         />
-        <ToggleOption
+        {/* <ToggleOption TODO!!!!
           label="Zone Overlays"
           checked={zoneOverlays}
           onChange={onToggleZoneOverlays}
-        />
+        /> */}
       </div>
     </div>
   );
